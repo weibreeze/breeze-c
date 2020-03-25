@@ -1,0 +1,48 @@
+cmake_minimum_required(VERSION 3.11.4)
+project(breeze_c C)
+SET(CROSS_COMPILE 1)
+if ( WIN32 AND NOT CYGWIN )
+    # Windows systems
+    add_definitions ( -DLUA_BUILD_AS_DLL -DLUAJIT_OS=LUAJIT_OS_WINDOWS)
+    option ( LUA_BUILD_WLUA "Build wluajit interpreter for no-console applications." ON )
+    set ( LJVM_MODE peobj )
+    # Paths (Double escapes needed)
+    set ( LUA_DIRSEP "\\\\" )
+    string ( REPLACE "/" ${LUA_DIRSEP} LUA_DIR "${LUA_DIR}" )
+    string ( REPLACE "/" ${LUA_DIRSEP} LUA_LDIR "${LUA_LDIR}" )
+    string ( REPLACE "/" ${LUA_DIRSEP} LUA_CDIR "${LUA_CDIR}" )
+    string ( REPLACE "/" ${LUA_DIRSEP} LUA_PATH_DEFAULT "${LUA_PATH_DEFAULT}" )
+    string ( REPLACE "/" ${LUA_DIRSEP} LUA_CPATH_DEFAULT "${LUA_CPATH_DEFAULT}" )
+
+elseif ( APPLE )
+    set ( CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 -image_base 7fff04c4a000" )
+    option ( LUA_USE_POSIX "Use POSIX functionality." ON )
+    option ( LUA_USE_DLOPEN "Use dynamic linker to load modules." ON )
+    set ( LJVM_MODE machasm )
+    set ( LINK_DIRECTORIES "/usr/local/LuaJIT-2.1-20181029/lib/")
+    set ( INCLUDE_DIRECTORIES "/usr/local/LuaJIT-2.1-20181029/include/luajit-2.1")
+else ()
+    option ( LUA_USE_POSIX "Use POSIX functionality." ON )
+    option ( LUA_USE_DLOPEN "Use dynamic linker to load modules." ON )
+    set ( LJVM_MODE elfasm )
+    set ( LINK_DIRECTORIES "/usr/local/openresty-1.15.8.2-debug/luajit/lib/")
+    set ( INCLUDE_DIRECTORIES "/usr/local/openresty-1.15.8.2-debug/luajit/include/luajit-2.1")
+endif ()
+
+#set(CMAKE_C_STANDARD 99)
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNODEBUG -std=c99 -Wall -Wextra")
+link_directories(${LINK_DIRECTORIES})
+
+# suppress warnig from glibc with old version
+add_definitions(-D_DEFAULT_SOURCE)
+add_definitions(-D_BSD_SOURCE)
+
+file(COPY ${CMAKE_SOURCE_DIR}/t.lua DESTINATION ${CMAKE_BINARY_DIR})
+
+include_directories(src ${INCLUDE_DIRECTORIES})
+add_library(breeze_c SHARED src/buffer.c src/buffer.h src/breeze.c src/breeze.h)
+SET_TARGET_PROPERTIES(breeze_c PROPERTIES OUTPUT_NAME "breeze")
+target_link_libraries(breeze_c luajit-5.1)
+
+add_executable(lua_test src/breeze_lua_unittest.c)
+target_link_libraries(lua_test luajit-5.1 breeze_c)
