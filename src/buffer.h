@@ -8,15 +8,6 @@
 
 #include "breeze.h"
 
-//typedef struct{
-//  int age;
-//  const char *name;
-//} user_t;
-//
-//typedef struct{
-//  user_t *user;
-//};
-
 typedef enum {
     B_BIG_ENDIAN,
     B_LITTLE_ENDIAN
